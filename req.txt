@@ -23,8 +23,8 @@ python-jose[cryptography]
 passlib[bcrypt]
 sqlalchemy
 
-## pdf 
-pypf
+## pdf
+pypdf
 
 ## Rate limiting (if used)
 slowapi
