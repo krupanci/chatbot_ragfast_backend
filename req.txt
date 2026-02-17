@@ -3,7 +3,7 @@
 langchain
 langchain-core
 langchain-community
-
+langchain-chroma
 
 # Google Gemini Integration
 langchain-google-genai
@@ -50,7 +50,7 @@ scikit-learn
 langchain-huggingface
 huggingface-hub
 
-# for RAG later
-# chromadb
-# sentence-transformers
+# rag
+#chromadb
+sentence-transformers
  
