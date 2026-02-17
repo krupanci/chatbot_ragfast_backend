@@ -1,0 +1,49 @@
+# LangChain Core
+langchain
+langchain-core
+langchain-community
+
+
+# Google Gemini Integration
+langchain-google-genai
+google-generativeai
+
+# LangGraph & Memory
+langgraph
+langgraph-checkpoint-sqlite
+langchain-text-splitters>=0.3.0
+
+# FastAPI Backend
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+sqlalchemy
+
+## Rate limiting (if used)
+slowapi
+
+# Frontend
+streamlit
+streamlit-autorefresh
+requests
+
+
+# Environment Management
+python-dotenv
+
+
+
+# ML Utilities
+numpy
+scikit-learn
+
+#huggingface
+langchain-huggingface
+huggingface-hub
+
+# for RAG later
+# chromadb
+# sentence-transformers
