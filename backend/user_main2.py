@@ -265,17 +265,20 @@ def register(user_data: UserCreate):
     
     try:
         # Validate password strength
+        password = user_data.password.strip()
         if len(user_data.password) < 8:
             raise HTTPException(
                 status_code=400,
                 detail="Password must be at least 8 characters long"
             )
+        password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+
         
         # Create user
         user = user_db.create_user(
             username=user_data.username,
             email=user_data.email,
-            password=user_data.password
+            password=password
         )
         
         # Generate tokens
