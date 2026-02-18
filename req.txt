@@ -24,9 +24,11 @@ python-multipart
 python-jose[cryptography]
 passlib[bcrypt]
 sqlalchemy
+asyncio
 
 ## pdf
 pypdf
+
 
 ## Rate limiting (if used)
 slowapi
