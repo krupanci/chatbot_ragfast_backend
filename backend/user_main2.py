@@ -1115,5 +1115,15 @@ def clear_all_documents(
     user_db.mark_all_jobs_deleted(current_user.user_id)
 
     return result
+if __name__ == "__main__":
+    import os
+    import uvicorn
+
+    port = int(os.environ.get("PORT", 8000))  # 8000 for local, Render overrides
+    uvicorn.run(
+        "backend.user_main2:app",
+        host="0.0.0.0",
+        port=port,
+    )
 
 
