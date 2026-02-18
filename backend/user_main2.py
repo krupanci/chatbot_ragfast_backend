@@ -83,11 +83,22 @@ app.add_middleware(
 
 import asyncio
 
-@app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(load_rag_modules())
-    print("🚀 FastAPI started (RAG loading in background)")
+import threading
 
+@app.on_event("startup")
+def startup_event():
+    print("🚀 FastAPI started — launching background RAG loader")
+
+    def background_init():
+        try:
+            import asyncio
+            asyncio.run(load_rag_modules())
+            print("✅ RAG modules loaded successfully")
+        except Exception as e:
+            print("❌ RAG load failed:", e)
+
+    thread = threading.Thread(target=background_init, daemon=True)
+    thread.start()
 
 #=================================================
 # security 
