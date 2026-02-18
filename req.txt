@@ -22,8 +22,8 @@ uvicorn[standard]
 pydantic
 python-multipart
 python-jose[cryptography]
-passlib[bcrypt]
-bcrypt<4
+passlib[bcrypt]>=1.7.4
+bcrypt>=4,<5
 sqlalchemy
 asyncio
 
