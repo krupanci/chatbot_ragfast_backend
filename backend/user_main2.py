@@ -81,6 +81,12 @@ app.add_middleware(
 # app.add_middleware(SlowAPIMiddleware)
 
 
+import asyncio
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(load_rag_modules())
+    print("🚀 FastAPI started (RAG loading in background)")
 
 
 #=================================================
@@ -105,43 +111,7 @@ delete_document = None
 # -----------------------------
 # 5️⃣ Startup event
 # -----------------------------
-@app.on_event("startup")
-async def startup_event():
-    """
-    Lazy-load heavy RAG modules so server starts immediately.
-    """
-    global vector_manager, create_user_agent
-    global retrieve_user_threads, get_thread_history_safe, get_user_thread_id
-    global ingest_document, has_documents, clear_documents
-    global SYSTEM_PROMPT, list_documents, delete_document
 
-    from .user_rag_temp import (
-        create_user_agent as cua,
-        retrieve_user_threads as rut,
-        get_thread_history_safe as gths,
-        get_user_thread_id as guthi,
-        vector_manager as vm,
-        ingest_document as ing_doc,
-        has_documents as hd,
-        clear_documents as cd,
-        SYSTEM_PROMPT as sp,
-        list_documents as ld,
-        delete_document as dd
-    )
-
-    vector_manager = vm
-    create_user_agent = cua
-    retrieve_user_threads = rut
-    get_thread_history_safe = gths
-    get_user_thread_id = guthi
-    ingest_document = ing_doc
-    has_documents = hd
-    clear_documents = cd
-    SYSTEM_PROMPT = sp
-    list_documents = ld
-    delete_document = dd
-
-    print("✅ FastAPI startup complete, all RAG modules loaded.")
 
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> TokenData:
@@ -192,6 +162,45 @@ async def log_requests(request: Request, call_next):
     process_time = time.time() - start_time
     logger.info(f"{request.method} {request.url.path} - {response.status_code} - {process_time:.2f}s")
     return response
+
+async def load_rag_modules():
+    global vector_manager, create_user_agent
+    global retrieve_user_threads, get_thread_history_safe, get_user_thread_id
+    global ingest_document, has_documents, clear_documents
+    global SYSTEM_PROMPT, list_documents, delete_document
+
+    try:
+        from .user_rag_temp import (
+            create_user_agent as cua,
+            retrieve_user_threads as rut,
+            get_thread_history_safe as gths,
+            get_user_thread_id as guthi,
+            vector_manager as vm,
+            ingest_document as ing_doc,
+            has_documents as hd,
+            clear_documents as cd,
+            SYSTEM_PROMPT as sp,
+            list_documents as ld,
+            delete_document as dd
+        )
+
+        vector_manager = vm
+        create_user_agent = cua
+        retrieve_user_threads = rut
+        get_thread_history_safe = gths
+        get_user_thread_id = guthi
+        ingest_document = ing_doc
+        has_documents = hd
+        clear_documents = cd
+        SYSTEM_PROMPT = sp
+        list_documents = ld
+        delete_document = dd
+
+        print("✅ RAG modules loaded successfully")
+
+    except Exception as e:
+        print(f"❌ RAG load failed: {e}")
+
 
 # ========================================
 # Pydantic Models
