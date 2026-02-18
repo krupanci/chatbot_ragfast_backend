@@ -27,19 +27,19 @@ from .auth_utiles import (
 
 
 # Import Core Logic and Error Handlers
-from .user_rag_temp import (
-    create_user_agent,
-    retrieve_user_threads,
-    get_thread_history_safe,
-    get_user_thread_id,
-    vector_manager,
-    ingest_document,
-    has_documents,
-    clear_documents,
-    SYSTEM_PROMPT,
-    list_documents,
-    delete_document
-)
+# from .user_rag_temp import (
+#     create_user_agent,
+#     retrieve_user_threads,
+#     get_thread_history_safe,
+#     get_user_thread_id,
+#     vector_manager,
+#     ingest_document,
+#     has_documents,
+#     clear_documents,
+#     SYSTEM_PROMPT,
+#     list_documents,
+#     delete_document
+# )
 
 from .error_handlers import setup_logger, AppError, DocumentProcessingError, RAGError, DatabaseError
 from .config import settings
@@ -87,6 +87,62 @@ app.add_middleware(
 # security 
 # ===============================================
 security = HTTPBearer()
+
+
+
+vector_manager = None
+create_user_agent = None
+retrieve_user_threads = None
+get_thread_history_safe = None
+get_user_thread_id = None
+ingest_document = None
+has_documents = None
+clear_documents = None
+SYSTEM_PROMPT = None
+list_documents = None
+delete_document = None
+
+# -----------------------------
+# 5️⃣ Startup event
+# -----------------------------
+@app.on_event("startup")
+async def startup_event():
+    """
+    Lazy-load heavy RAG modules so server starts immediately.
+    """
+    global vector_manager, create_user_agent
+    global retrieve_user_threads, get_thread_history_safe, get_user_thread_id
+    global ingest_document, has_documents, clear_documents
+    global SYSTEM_PROMPT, list_documents, delete_document
+
+    from .user_rag_temp import (
+        create_user_agent as cua,
+        retrieve_user_threads as rut,
+        get_thread_history_safe as gths,
+        get_user_thread_id as guthi,
+        vector_manager as vm,
+        ingest_document as ing_doc,
+        has_documents as hd,
+        clear_documents as cd,
+        SYSTEM_PROMPT as sp,
+        list_documents as ld,
+        delete_document as dd
+    )
+
+    vector_manager = vm
+    create_user_agent = cua
+    retrieve_user_threads = rut
+    get_thread_history_safe = gths
+    get_user_thread_id = guthi
+    ingest_document = ing_doc
+    has_documents = hd
+    clear_documents = cd
+    SYSTEM_PROMPT = sp
+    list_documents = ld
+    delete_document = dd
+
+    print("✅ FastAPI startup complete, all RAG modules loaded.")
+
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> TokenData:
     """Dependency to get current authenticated user"""
