@@ -83,30 +83,7 @@ app.add_middleware(
 
 import asyncio
 
-import threading
-
-@app.on_event("startup")
-def startup_event():
-    print("🚀 FastAPI started — launching background RAG loader")
-
-    def background_init():
-        try:
-            import asyncio
-            asyncio.run(load_rag_modules())
-            print("✅ RAG modules loaded successfully")
-        except Exception as e:
-            print("❌ RAG load failed:", e)
-
-    thread = threading.Thread(target=background_init, daemon=True)
-    thread.start()
-
-#=================================================
-# security 
-# ===============================================
-security = HTTPBearer()
-
-
-
+# Global module placeholders
 vector_manager = None
 create_user_agent = None
 retrieve_user_threads = None
@@ -119,9 +96,75 @@ SYSTEM_PROMPT = None
 list_documents = None
 delete_document = None
 
+# Flag to indicate RAG modules are ready
+rag_ready = False
+
+async def load_rag_modules_safe():
+    """
+    Async-safe loader for RAG modules.
+    Sets rag_ready = True when done.
+    """
+    global vector_manager, create_user_agent
+    global retrieve_user_threads, get_thread_history_safe, get_user_thread_id
+    global ingest_document, has_documents, clear_documents
+    global SYSTEM_PROMPT, list_documents, delete_document
+    global rag_ready
+
+    try:
+        from .user_rag_temp import (
+            create_user_agent as cua,
+            retrieve_user_threads as rut,
+            get_thread_history_safe as gths,
+            get_user_thread_id as guthi,
+            vector_manager as vm,
+            ingest_document as ing_doc,
+            has_documents as hd,
+            clear_documents as cd,
+            SYSTEM_PROMPT as sp,
+            list_documents as ld,
+            delete_document as dd
+        )
+
+        vector_manager = vm
+        create_user_agent = cua
+        retrieve_user_threads = rut
+        get_thread_history_safe = gths
+        get_user_thread_id = guthi
+        ingest_document = ing_doc
+        has_documents = hd
+        clear_documents = cd
+        SYSTEM_PROMPT = sp
+        list_documents = ld
+        delete_document = dd
+
+        rag_ready = True
+        print("✅ RAG modules loaded successfully")
+
+    except Exception as e:
+        rag_ready = False
+        print(f"❌ RAG load failed: {e}")
+
+#=================================================
+# security 
+# ===============================================
+security = HTTPBearer()
+
+
+
 # -----------------------------
 # 5️⃣ Startup event
 # -----------------------------
+
+@app.on_event("startup")
+async def startup_event():
+    """
+    Startup event:
+    1. Start RAG loading in background
+    2. Avoid blocking FastAPI startup
+    """
+    print("🚀 FastAPI starting... loading RAG modules in background")
+    # Start background async task
+    asyncio.create_task(load_rag_modules_safe())
 
 
 
@@ -174,43 +217,7 @@ async def log_requests(request: Request, call_next):
     logger.info(f"{request.method} {request.url.path} - {response.status_code} - {process_time:.2f}s")
     return response
 
-async def load_rag_modules():
-    global vector_manager, create_user_agent
-    global retrieve_user_threads, get_thread_history_safe, get_user_thread_id
-    global ingest_document, has_documents, clear_documents
-    global SYSTEM_PROMPT, list_documents, delete_document
 
-    try:
-        from .user_rag_temp import (
-            create_user_agent as cua,
-            retrieve_user_threads as rut,
-            get_thread_history_safe as gths,
-            get_user_thread_id as guthi,
-            vector_manager as vm,
-            ingest_document as ing_doc,
-            has_documents as hd,
-            clear_documents as cd,
-            SYSTEM_PROMPT as sp,
-            list_documents as ld,
-            delete_document as dd
-        )
-
-        vector_manager = vm
-        create_user_agent = cua
-        retrieve_user_threads = rut
-        get_thread_history_safe = gths
-        get_user_thread_id = guthi
-        ingest_document = ing_doc
-        has_documents = hd
-        clear_documents = cd
-        SYSTEM_PROMPT = sp
-        list_documents = ld
-        delete_document = dd
-
-        print("✅ RAG modules loaded successfully")
-
-    except Exception as e:
-        print(f"❌ RAG load failed: {e}")
 
 
 # ========================================
@@ -427,6 +434,9 @@ def create_new_thread(current_user: TokenData = Depends(get_current_user)):
 
 @app.get("/threads", response_model=ThreadsResponse)
 def get_all_threads(current_user: TokenData = Depends(get_current_user)):
+    if not rag_ready:
+        # Modules still loading — return empty list safely
+        return ThreadsResponse(threads=[])
     try:
         all_threads = retrieve_user_threads(current_user.user_id)
         return ThreadsResponse(threads=all_threads)
@@ -613,6 +623,12 @@ def chat(
     # ---------------------------------------
     # Per-user daily limit (your DB limit)
     # ---------------------------------------
+    if not rag_ready:
+        return ChatResponse(
+            reply="AI service is still initializing, please try again in a few seconds.",
+            thread_id=req.thread_id,
+            info="RAG initializing"
+        )
     user_db.check_and_increment_daily_limit(current_user.user_id)
 
     logger.info(f"Chat request from user {current_user.user_id}, thread {req.thread_id}")
@@ -866,6 +882,8 @@ def get_thread_history(thread_id: str, current_user: TokenData = Depends(get_cur
 # ========================================
 @app.get("/documents", response_model=DocumentsResponse)
 def get_documents(current_user: TokenData = Depends(get_current_user)):
+    if not rag_ready:
+        return DocumentsResponse(documents=[], count=0)
     try:
         docs = list_documents(current_user.user_id)
         return DocumentsResponse(documents=docs, count=len(docs))
