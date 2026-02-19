@@ -23,6 +23,8 @@ from .auth_utiles import (
       UserCreate,
       UserLogin, TokenData
 )
+import threading
+import asyncio
 
 
 
@@ -81,7 +83,7 @@ app.add_middleware(
 # app.add_middleware(SlowAPIMiddleware)
 
 
-import asyncio
+
 
 # Global module placeholders
 vector_manager = None
@@ -96,13 +98,11 @@ SYSTEM_PROMPT = None
 list_documents = None
 delete_document = None
 
-# Flag to indicate RAG modules are ready
 rag_ready = False
 
-async def load_rag_modules_safe():
+def load_rag_modules_sync():
     """
-    Async-safe loader for RAG modules.
-    Sets rag_ready = True when done.
+    Blocking loader for RAG modules — run in background thread.
     """
     global vector_manager, create_user_agent
     global retrieve_user_threads, get_thread_history_safe, get_user_thread_id
@@ -139,10 +139,11 @@ async def load_rag_modules_safe():
 
         rag_ready = True
         print("✅ RAG modules loaded successfully")
-
+        logger.info("RAG modules loaded successfully")
     except Exception as e:
         rag_ready = False
         print(f"❌ RAG load failed: {e}")
+        logger.error(f"RAG load failed: {e}")
 
 #=================================================
 # security 
@@ -157,14 +158,9 @@ security = HTTPBearer()
 
 @app.on_event("startup")
 async def startup_event():
-    """
-    Startup event:
-    1. Start RAG loading in background
-    2. Avoid blocking FastAPI startup
-    """
     print("🚀 FastAPI starting... loading RAG modules in background")
-    # Start background async task
-    asyncio.create_task(load_rag_modules_safe())
+    # Start RAG loading in a separate background thread
+    threading.Thread(target=load_rag_modules_sync, daemon=True).start()
 
 
 
