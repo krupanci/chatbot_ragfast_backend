@@ -417,6 +417,8 @@ def clear_documents(user_id: str) -> dict:
 def create_search_tool(user_id: str):
     @tool
     def search_documents(query: str) -> str:
+        """Search user-uploaded documents and return relevant information with sources."""
+
 
         if not query.strip():
             return "Please enter a valid query."
