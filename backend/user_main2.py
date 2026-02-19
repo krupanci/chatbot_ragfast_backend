@@ -100,17 +100,17 @@ delete_document = None
 
 rag_ready = False
 
+
 def load_rag_modules_sync():
-    """
-    Blocking loader for RAG modules — run in background thread.
-    """
-    global vector_manager, create_user_agent
-    global retrieve_user_threads, get_thread_history_safe, get_user_thread_id
-    global ingest_document, has_documents, clear_documents
-    global SYSTEM_PROMPT, list_documents, delete_document
     global rag_ready
+    global create_user_agent, retrieve_user_threads, get_thread_history_safe
+    global get_user_thread_id, vector_manager, ingest_document
+    global has_documents, clear_documents, SYSTEM_PROMPT
+    global list_documents, delete_document
 
     try:
+        logger.info("🔄 Importing RAG modules...")
+
         from .user_rag_temp import (
             create_user_agent as cua,
             retrieve_user_threads as rut,
@@ -122,14 +122,18 @@ def load_rag_modules_sync():
             clear_documents as cd,
             SYSTEM_PROMPT as sp,
             list_documents as ld,
-            delete_document as dd
+            delete_document as dd,
+            preload_models
         )
 
-        vector_manager = vm
+        logger.info("📦 Modules imported")
+
+        # ✅ CRITICAL FIX — Assign globals
         create_user_agent = cua
         retrieve_user_threads = rut
         get_thread_history_safe = gths
         get_user_thread_id = guthi
+        vector_manager = vm
         ingest_document = ing_doc
         has_documents = hd
         clear_documents = cd
@@ -137,18 +141,49 @@ def load_rag_modules_sync():
         list_documents = ld
         delete_document = dd
 
+        # -----------------------------------
+        # ⚡ Preload models
+        # -----------------------------------
+        logger.info("⚡ Preloading models START")
+        preload_models()
+        logger.info("✅ Preloading DONE")
+
+        # -----------------------------------
+        # 🔥 Warm vector store (NEW)
+        # -----------------------------------
+        try:
+            vm.get_vectorstore("warmup_user")
+            vm.get_retriever("warmup_user")
+            logger.info("🔥 Vector store warmed")
+        except Exception as e:
+            logger.warning(f"Vector warmup failed: {e}")
+
+        # -----------------------------------
+        # 🔥 Warm agent
+        # -----------------------------------
+        try:
+            create_user_agent("warmup_user")
+            logger.info("🔥 Warmup agent created")
+        except Exception as e:
+            logger.warning(f"Warmup failed: {e}")
+
         rag_ready = True
-        print("✅ RAG modules loaded successfully")
-        logger.info("RAG modules loaded successfully")
+        logger.info("✅ RAG READY")
+
     except Exception as e:
         rag_ready = False
-        print(f"❌ RAG load failed: {e}")
-        logger.error(f"RAG load failed: {e}")
+        logger.exception("❌ RAG FAILED TO LOAD")
+
+
+
+
 
 #=================================================
 # security 
 # ===============================================
 security = HTTPBearer()
+
+
 
 
 
@@ -158,11 +193,19 @@ security = HTTPBearer()
 
 @app.on_event("startup")
 async def startup_event():
-    print("🚀 FastAPI starting... loading RAG modules in background")
-    # Start RAG loading in a separate background thread
+    logger.info("🚀 Loading RAG synchronously...")
     threading.Thread(target=load_rag_modules_sync, daemon=True).start()
+    
 
 
+
+
+@app.get("/debug/rag-status")
+def rag_status():
+    return {
+        "rag_ready": rag_ready,
+        "agent_loaded": create_user_agent is not None
+    }
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> TokenData:
     """Dependency to get current authenticated user"""
@@ -382,8 +425,11 @@ def metrics(currrent_user : TokenData = Depends(get_current_user)):
     return {
         "status": "online",
         "timestamp": datetime.now().isoformat(),
-        "threads_active": len(retrieve_user_threads(currrent_user.user_id)),
-        "documents_loaded": len(list_documents(currrent_user.user_id)) if has_documents(currrent_user.user_id) else 0,
+        # "threads_active": len(retrieve_user_threads(currrent_user.user_id)),
+        # "documents_loaded": len(list_documents(currrent_user.user_id)) if has_documents(currrent_user.user_id) else 0,
+        "threads_active": len(retrieve_user_threads(currrent_user.user_id)) if rag_ready else 0,
+        "documents_loaded": len(list_documents(currrent_user.user_id)) if rag_ready and has_documents(currrent_user.user_id) else 0,
+
         "limiter_info": "Rate limiting active"
     }
 
@@ -431,8 +477,10 @@ def create_new_thread(current_user: TokenData = Depends(get_current_user)):
 @app.get("/threads", response_model=ThreadsResponse)
 def get_all_threads(current_user: TokenData = Depends(get_current_user)):
     if not rag_ready:
-        # Modules still loading — return empty list safely
-        return ThreadsResponse(threads=[])
+        raise HTTPException(
+            status_code=503,
+            detail="RAG still initializing"
+        )
     try:
         all_threads = retrieve_user_threads(current_user.user_id)
         return ThreadsResponse(threads=all_threads)
@@ -618,12 +666,11 @@ def chat(
 ):
     # ---------------------------------------
     # Per-user daily limit (your DB limit)
-    # ---------------------------------------
-    if not rag_ready:
+    if not rag_ready or create_user_agent is None:
         return ChatResponse(
-            reply="AI service is still initializing, please try again in a few seconds.",
+            reply="⚡ AI is warming up, please try again in a few seconds.",
             thread_id=req.thread_id,
-            info="RAG initializing"
+            info="warming_up"
         )
     user_db.check_and_increment_daily_limit(current_user.user_id)
 
