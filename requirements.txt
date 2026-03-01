@@ -52,6 +52,7 @@ scikit-learn
 #huggingface
 langchain-huggingface
 huggingface-hub
+fastembed
 
 # rag
 #chromadb
