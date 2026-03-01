@@ -1,0 +1,59 @@
+
+# LangChain Core
+langchain
+langchain-core
+langchain-community
+langchain-chroma
+
+# Google Gemini Integration
+langchain-google-genai
+langchain_groq
+google-generativeai
+
+
+# LangGraph & Memory
+langgraph
+langgraph-checkpoint-sqlite
+langchain-text-splitters>=0.3.0
+
+# FastAPI Backend
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]>=1.7.4
+bcrypt>=4,<5
+sqlalchemy
+asyncio
+
+## pdf
+pypdf
+
+
+## Rate limiting (if used)
+slowapi
+
+# Frontend
+streamlit
+streamlit-autorefresh
+requests
+
+
+# Environment Management
+python-dotenv
+
+
+
+# ML Utilities
+numpy
+scikit-learn
+
+#huggingface
+langchain-huggingface
+huggingface-hub
+
+# rag
+#chromadb
+sentence-transformers
+ 
