@@ -10,7 +10,9 @@ import os
 from langchain_chroma import Chroma
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
-from langchain_huggingface import HuggingFaceEmbeddings
+#from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import FastEmbedEmbeddings
+
 from functools import lru_cache
 
 # Import Custom Error Handlers
@@ -40,7 +42,7 @@ def get_llm():
 @lru_cache(maxsize=1)
 def get_embeddings():
     logger.info("Loading embedding model...")
-    return HuggingFaceEmbeddings(
+    return FastEmbedEmbeddings(
         model_name=settings.EMBEDDING_MODEL  # use MiniLM for speed
     )
 

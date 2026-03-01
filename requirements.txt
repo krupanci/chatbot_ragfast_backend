@@ -1,19 +1,18 @@
 
 # LangChain Core
-langchain
-langchain-core
-langchain-community
-langchain-chroma
+langchain >=0.1.0
+langchain-core >=0.1.0
+langchain-community >=0.1.0
+langchain-chroma >=0.1.0
 
 # Google Gemini Integration
-langchain-google-genai
-langchain_groq
-google-generativeai
+langchain-google-genai>=0.1.0
+langchain-google-genai>=0.1.0
 
 
 # LangGraph & Memory
-langgraph
-langgraph-checkpoint-sqlite
+langgraph>=0.1.0
+langgraph-checkpoint-sqlite>=0.1.0
 langchain-text-splitters>=0.3.0
 
 # FastAPI Backend
@@ -56,5 +55,5 @@ fastembed
 
 # rag
 #chromadb
-sentence-transformers
+#sentence-transformers
  
