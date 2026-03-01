@@ -27,7 +27,8 @@ class Settings(BaseSettings):
     # Models
     GEMINI_MODEL_NAME: str = "models/gemini-2.5-flash"
     GROK_MODEL_NAME: str = "llama-3.1-8b-instant"
-    EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
+    #EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
+    EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
     
     # Limits
     MAX_FILE_SIZE_MB: int = 10
